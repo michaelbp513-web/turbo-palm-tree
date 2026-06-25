@@ -1,0 +1,1 @@
+{"name":"01 - Lead Capture from Multiple Sources","nodes":[{"parameters":{"path":"webhook/lead-capture","responseMode":"onReceived","responseData":"anotherOption","responseDataOption":"{\"status\":\"received\"}"},"id":"Webhook - Lead Capture","name":"Webhook - Lead Capture","type":"n8n-nodes-base.webhook","typeVersion":1,"position":[250,300]}],"connections":{}}

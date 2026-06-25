@@ -1,0 +1,71 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: n8n_revenue_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-revenue_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-revenue_admin}
+      POSTGRES_DB: ${POSTGRES_DB:-n8n_revenue}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - n8n_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-revenue_admin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n_revenue_engine
+    restart: unless-stopped
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-n8n_revenue}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER:-revenue_admin}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:-revenue_admin}
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      N8N_EDITOR_BASE_URL: http://localhost:5678
+      N8N_WEBHOOK_TUNNEL_URL: http://localhost:5678
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret}
+      GENERIC_TIMEZONE: ${TIMEZONE:-America/New_York}
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./workflows:/home/node/.n8n/workflows
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - n8n_network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: n8n_revenue_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - n8n_network
+
+volumes:
+  postgres_data:
+  n8n_data:
+
+networks:
+  n8n_network:
+    driver: bridge
